@@ -31,24 +31,36 @@ app.MapGet("/getProductWithHeader", (HttpRequest request) => {
     return request.Headers["product-code"].ToString();
 });
 
-// EM baixo esta os Crud do produto;
+//Refatorando os metodos CRUD para o padrão e add Status Code:
 
-app.MapPost("/saveProductWithFakeData", (Product product) => {
+//Results  => Tem os statusCode.
+app.MapPost("/products", (Product product) => {
     ProductRepository.Add(product);
-    
+    return Results.Created($"/products/{product.Code}", product.Code);
 });
 
-app.MapGet("/getProductWithFakeData/{code}", ([FromRoute] int code) => {
+app.MapGet("/products/{code}", ([FromRoute] int code) => {
     var product = ProductRepository.GetByCode(code);
-    return product;
+    if(product != null) {
+        return Results.Ok(product);
+    }
+    return Results.NotFound();
 });
 
-app.MapPut("/editProductWithFakeData", ([FromBody] Product product) => {
-    return ProductRepository.Edit(product);
+app.MapPut("/products", ([FromBody] Product product) => {
+    var editProduct = ProductRepository.Edit(product);
+    if(editProduct != null) {
+        return Results.Ok(editProduct);
+    }
+    return Results.NotFound();
 });
 
-app.MapDelete("/deleteProductWithFakeData/{code}", ([FromRoute] int code) => {
-    return ProductRepository.Remove(code);
+app.MapDelete("/products/{code}", ([FromRoute] int code) => {
+    var product = ProductRepository.Remove(code);
+    if(product != null) {
+        return Results.Ok(product);
+    }
+    return Results.NotFound();
 });
 
 app.Run();
@@ -67,32 +79,37 @@ public static class ProductRepository {
         Products.Add(product);
     }
 
-    public static Product GetByCode(int code) {
-       var product = Products.FirstOrDefault(p => p.Code == code);
-       return product;
+    public static Product GetByCode(int Code) {
+        try {
+            var product = Products.FirstOrDefault(p => p.Code == Code);
+            return product;
+        } catch {
+            return null;
+        }
     }
 
-    public static String Edit([FromBody] Product product)  {
-       var productSave = Products.FirstOrDefault(p => p.Code == product.Code);
-       if(productSave == null) return "Produto não encontrado!";
-
-       productSave.Name = product.Name;
-
-       return "Produto editado com sucesso, novo valor: " + productSave.Name;
+    public static Product Edit([FromBody] Product product)  {
+        try {
+            var productSave = GetByCode(product.Code);
+            productSave.Name = product.Name;
+            return productSave;
+        } catch {
+            return null;
+        }
     }
 
-    public static String Remove(int code) {
-       var product = Products.FirstOrDefault(p => p.Code == code);
-
-       if(Products.Remove(product)) {
-        return "Produto: " +product.Name+ " Removido com sucesso!";
-       } else {
-        return "Produto não encontrado!";
-       } 
+    public static Product Remove([FromBody] int Code) {
+        try {
+            var product = GetByCode(Code);
+            Products.Remove(product);
+            return product;
+        } catch {
+            return null;
+        }
     }
 }
 
-//Classe do producto;
+//Classe do produto;
 public class Product {
     public int Code { get; set; }
 

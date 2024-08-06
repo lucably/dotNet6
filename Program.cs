@@ -1,7 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 
+//Primeiros comandos executados.
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
+
+//Add a função Init(); para ser executada quando o codigo rodar;
+var configuration = app.Configuration;
+ProductRepository.Init(configuration);
+
+
+
 
 app.MapGet("/", () => "Hello World!");
 app.MapGet("/user", () => new {Name = "Teste", Age = 20});
@@ -47,6 +55,10 @@ app.MapGet("/products/{code}", ([FromRoute] int code) => {
     return Results.NotFound();
 });
 
+app.MapGet("/products", () => {
+    return Results.Ok(ProductRepository.GetAllProduct());
+});
+
 app.MapPut("/products", ([FromBody] Product product) => {
     var editProduct = ProductRepository.Edit(product);
     if(editProduct != null) {
@@ -63,6 +75,21 @@ app.MapDelete("/products/{code}", ([FromRoute] int code) => {
     return Results.NotFound();
 });
 
+//Adicionando variaveis de configuração;
+if(app.Environment.IsDevelopment()) {
+    // Pega somente os dados do appsettings.Development.json (Repare que a config do banco de dados são diferentes do Development e o de Production).
+    // Para funcionar deve mudar no arquivo Properties/launchSettings.json o apontamento 
+    
+    /* 
+        "environmentVariables": {
+            "ASPNETCORE_ENVIRONMENT": "Development" <= Aqui tem q ser o "Development" se quiser de produção coloque "Production"; 
+        }
+    */
+    app.MapGet("/configuration/database", (IConfiguration configuration) => {
+        return Results.Ok($"Connection: {configuration["Database:Connection"]}, Port: {configuration["Database:Port"]}");
+    });
+}
+
 app.Run();
 
 //passando a função para static para ela "sobreviver" a cada requisição.
@@ -71,12 +98,26 @@ public static class ProductRepository {
 
     public static List<Product> Products {get; set;}
 
+    //Inicializando a lista de Produtos com os dados que vieram da variavel de ambiente. (appsettings.json);
+    public static void Init(IConfiguration configuration) {
+        var products = configuration.GetSection("Products").Get<List<Product>>();
+        Products = products;
+    }
+
     public static void Add(Product product) {
         if(Products == null) {
             Products = new List<Product>();
         }
 
         Products.Add(product);
+    }
+
+    public static List<Product> GetAllProduct() {
+        try {
+            return Products;
+        } catch {
+            return null;
+        }
     }
 
     public static Product GetByCode(int Code) {

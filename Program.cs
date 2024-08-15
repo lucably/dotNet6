@@ -1,7 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 //Primeiros comandos executados.
 var builder = WebApplication.CreateBuilder(args);
+
+//configuração do banco;
+builder.Services.AddDbContext<ApplicationDbContext>();
+
 var app = builder.Build();
 
 //Add a função Init(); para ser executada quando o codigo rodar;
@@ -152,7 +157,18 @@ public static class ProductRepository {
 
 //Classe do produto;
 public class Product {
+    public int Id { get; set; }
+
     public int Code { get; set; }
 
     public string Name { get; set; }
+}
+
+//Criação da configuração com o Banco de Dados.
+public class ApplicationDbContext: DbContext {
+
+    public DbSet<Product> Products { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder options) 
+    => options.UseSqlServer("Server=localhost;Database=Products;User Id=sa;Password=@Sql2019;MultipleActiveResultSets=true;Encrypt=YES;TrustServerCertificate=YES");
 }

@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 //Primeiros comandos executados.
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<ApplicationDbContext>();
 var app = builder.Build();
 
 //Add a função Init(); para ser executada quando o codigo rodar;
@@ -152,7 +155,52 @@ public static class ProductRepository {
 
 //Classe do produto;
 public class Product {
+    public int Id { get; set; }
+
     public int Code { get; set; }
 
     public string Name { get; set; }
+
+    public string Description { get; set; }
+}
+
+
+//Classe do banco;
+
+/*
+    Libs Utilizadas:
+
+        dotnet add package Microsoft.EntityFrameworkCore
+        dotnet add package Microsoft.EntityFrameworkCore.Design
+        dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+
+    Para Migrations:
+        
+        dotnet tool install --global dotnet-ef
+
+        Para Executar a Criação das Migrations:
+        
+            obs: InitialDb seria a mensagem do commit (doq foi feito)
+            dotnet ef migrations add InitialDb
+
+        Para Aplicar as Migrations no Banco de Dados:
+
+            dotnet ef database update
+
+        Para Reverter as Migrations no Banco de Dados:
+
+            dotnet ef migrations remove   (remove o ultimo migration)
+
+        Para Atualizar um Migration ja Existente:
+ 
+            dotnet ef database update {nome_arquivo_migration}
+            
+*/
+
+public class ApplicationDbContext: DbContext
+{
+    public DbSet<Product> Products { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        => optionsBuilder.UseSqlServer("Server=localhost;Database=Products;User Id=sa;Password=@Sql2019;MultipleActiveResultSets=true;Encrypt=YES;TrustServerCertificate=YES");
 }

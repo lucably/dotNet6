@@ -27,9 +27,9 @@ public static class ProductRepository {
         }
     }
 
-    public static Product GetByCode(int Code) {
+    public static Product GetByCode(string Code) {
         try {
-            var product = Products.FirstOrDefault(p => p.Code == Code);
+            var product = Products.FirstOrDefault(p => p.Code.Equals(Code));
             return product;
         } catch {
             return null;
@@ -46,7 +46,7 @@ public static class ProductRepository {
         }
     }
 
-    public static Product Remove([FromBody] int Code) {
+    public static Product Remove([FromBody] string Code) {
         try {
             var product = GetByCode(Code);
             Products.Remove(product);

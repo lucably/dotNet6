@@ -51,7 +51,7 @@ app.MapPost("/products", (Product product) => {
     return Results.Created($"/products/{product.Code}", product.Code);
 });
 
-app.MapGet("/products/{code}", ([FromRoute] int code) => {
+app.MapGet("/products/{code}", ([FromRoute] string code) => {
     var product = ProductRepository.GetByCode(code);
     if(product != null) {
         return Results.Ok(product);
@@ -71,7 +71,7 @@ app.MapPut("/products", ([FromBody] Product product) => {
     return Results.NotFound();
 });
 
-app.MapDelete("/products/{code}", ([FromRoute] int code) => {
+app.MapDelete("/products/{code}", ([FromRoute] string code) => {
     var product = ProductRepository.Remove(code);
     if(product != null) {
         return Results.Ok(product);

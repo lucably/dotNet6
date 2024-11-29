@@ -13,68 +13,86 @@ var configuration = app.Configuration;
 ProductRepository.Init(configuration);
 
 
+//O Payload vem do body = productRequest; E oq é o serviço do aspnet = context;
+app.MapPost("/products", (ProductRequest productRequest, ApplicationDbContext context) => {
 
+    var category = context.Categories.Where(c => c.Id == productRequest.CategoryId).First();
+    var product = new Product
+    {
+        Code = productRequest.Code,
+        Name = productRequest.Name,
+        Description = productRequest.Description,
+        Category = category
+    };
 
-app.MapGet("/", () => "Hello World!");
-app.MapGet("/user", () => new {Name = "Teste", Age = 20});
-
-app.MapGet("/addHeader", (HttpResponse response) => {
-    response.Headers.Append("Teste", "Valor do Teste");
-    return "Header adicionado!";
+    if(productRequest.Tags != null)
+    {
+        product.Tags = new List<Tag>();
+        foreach ( var item in productRequest.Tags)
+        {
+            product.Tags.Add(new Tag{ Name = item });
+        }
     }
-);
-
-app.MapPost("/saveProduct",(Product product) => {
-    return product.Code + " - " + product.Name;
+    context.Products.Add(product);
+    //Fazer o commit no banco
+    context.SaveChanges(); 
+    return Results.Created($"/products/{product.Id}", product.Id);
 });
 
-//http://localhost:3000/getProduct?dateStart=x&dateEnd=y
-app.MapGet("getProduct", ([FromQuery] string dateStart, [FromQuery] string dateEnd) => {
-    return dateStart + " - " + dateEnd;
-});
-
-//http://localhost:3000/getProduct/10
-app.MapGet("getProduct/{code}", ([FromRoute] string code) => {
-    return "O codigo é: " + code;
-});
-
-//Parametro pelo Header => Add o product-code no HEADER do Request.
-app.MapGet("/getProductWithHeader", (HttpRequest request) => {
-    return request.Headers["product-code"].ToString();
-});
-
-//Refatorando os metodos CRUD para o padrão e add Status Code:
-
-//Results  => Tem os statusCode.
-app.MapPost("/products", (Product product) => {
-    ProductRepository.Add(product);
-    return Results.Created($"/products/{product.Code}", product.Code);
-});
-
-app.MapGet("/products/{code}", ([FromRoute] string code) => {
-    var product = ProductRepository.GetByCode(code);
+app.MapGet("/products/{id}", ([FromRoute] int id, ApplicationDbContext context) => {
+    var product = context.Products
+    .Include(p => p.Category)
+    .Include(p => p.Tags)
+    .Where(p => p.Id == id).First();
     if(product != null) {
         return Results.Ok(product);
     }
     return Results.NotFound();
 });
 
-app.MapGet("/products", () => {
-    return Results.Ok(ProductRepository.GetAllProduct());
+app.MapGet("/products", (ApplicationDbContext context) => {
+
+    var products = context.Products.ToList();
+
+    return Results.Ok(products);
 });
 
-app.MapPut("/products", ([FromBody] Product product) => {
-    var editProduct = ProductRepository.Edit(product);
-    if(editProduct != null) {
-        return Results.Ok(editProduct);
+app.MapPut("/products/{id}", ([FromRoute] int id, ProductRequest productRequest, ApplicationDbContext context) => {
+    
+    var category = context.Categories.Where(c => c.Id == productRequest.CategoryId).First();
+
+    var editProduct = context.Products
+    .Include(p => p.Tags)
+    .Where(p => p.Id == id).FirstOrDefault();
+
+    if (editProduct != null)
+    {
+        editProduct.Code = productRequest.Code;
+        editProduct.Name = productRequest.Name;
+        editProduct.Description = productRequest.Description;
+        editProduct.Category = category;
+        editProduct.Tags = new List<Tag>();
+
+        if (productRequest.Tags != null)
+        {
+            editProduct.Tags = new List<Tag>();
+            foreach (var item in productRequest.Tags)
+            {
+                editProduct.Tags.Add(new Tag { Name = item });
+            }
+        }
+        context.SaveChanges();
+        return Results.Ok();
     }
     return Results.NotFound();
 });
 
-app.MapDelete("/products/{code}", ([FromRoute] string code) => {
-    var product = ProductRepository.Remove(code);
+app.MapDelete("/products/{id}", ([FromRoute] int id, ApplicationDbContext context) => {
+    var product = context.Products.Where(p => p.Id == id).FirstOrDefault();
     if(product != null) {
-        return Results.Ok(product);
+        context.Products.Remove(product);
+        context.SaveChanges();
+        return Results.Ok("Produto: "+product.Name+ ". Deletado com sucesso.");
     }
     return Results.NotFound();
 });

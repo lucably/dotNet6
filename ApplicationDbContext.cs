@@ -37,6 +37,8 @@ public class ApplicationDbContext : DbContext
 {
     public DbSet<Product> Products { get; set; }
 
+    public DbSet<Category> Categories { get; set; }
+
     //Recebe como construtor o options e passa para o pai base(options) o simbolo ":" significa herança
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
@@ -50,6 +52,9 @@ public class ApplicationDbContext : DbContext
             .Property(p => p.Name).HasMaxLength(100).IsRequired();
         modelBuilder.Entity<Product>()
             .Property(p => p.Code).IsRequired();
+        //Mudando o nome da tabela Category para Categories
+        modelBuilder.Entity<Category>()
+            .ToTable("Categories");
 
         //Depois de realizar essas atualizações como mexe no banco de dados é necessario rodar novamente as Migrations.
     }
